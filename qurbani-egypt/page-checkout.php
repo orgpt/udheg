@@ -18,7 +18,7 @@ get_header();
             <div>
                 <p class="qe-section-kicker">طلب آمن وسريع</p>
                 <h1 class="qe-section-title">إتمام الحجز</h1>
-                <p class="qe-section-copy">بيانات قليلة، تأكيد مباشر، ومتابعة على واتساب.</p>
+                <p class="qe-section-copy">بيانات قليلة، تأكيد مباشر، ومتابعة الطلب من خلال الموقع.</p>
             </div>
         </div>
 
@@ -51,7 +51,7 @@ get_header();
                             <label class="qe-check-option"><input type="radio" name="payment"> تحويل</label>
                             <label class="qe-check-option"><input type="radio" name="payment"> محفظة</label>
                         </div>
-                        <a class="qe-button qe-button--gold" href="<?php echo esc_url(qe_whatsapp_link('السلام عليكم، عايز أأكد طلب الأضحية.')); ?>" target="_blank" rel="noopener">تأكيد الطلب على واتساب</a>
+                        <button type="submit" class="qe-button qe-button--gold">تأكيد الطلب من الموقع</button>
                     </form>
                     <?php
                 }
@@ -64,8 +64,8 @@ get_header();
                     <span>بنأكد كل تفاصيل الذبح قبل التنفيذ.</span>
                 </div>
                 <div class="qe-trust-panel">
-                    <strong>توثيق فيديو</strong>
-                    <span>تقدر تستلم فيديو الذبح على واتساب.</span>
+                    <strong>توثيق واضح</strong>
+                    <span>تقدر تتابع تفاصيل الطلب من صفحة الطلب بعد الإتمام.</span>
                 </div>
                 <div class="qe-trust-panel">
                     <strong>توصيل منظم</strong>

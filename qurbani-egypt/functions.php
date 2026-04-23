@@ -9,7 +9,39 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('QE_THEME_VERSION', '1.0.0');
+define('QE_THEME_VERSION', '1.1.0');
+
+function qe_sanitize_checkbox($value): bool
+{
+    return (bool) $value;
+}
+
+function qe_campaign_defaults(): array
+{
+    return [
+        'enabled'              => false,
+        'banner_text'          => 'استعد لعيد الأضحى واحجز مبكراً قبل اكتمال السعة.',
+        'hero_eyebrow'         => 'حجز أضاحي العيد في مصر',
+        'hero_title'           => 'احجز أضحيتك بسهولة وأمان',
+        'hero_body'            => 'اختر النوع والوزن، أضف الخدمات المناسبة، وأكمل طلبك من الموقع مع تأكيد واضح لكل التفاصيل.',
+        'primary_cta_label'    => 'احجز الآن',
+        'secondary_cta_label'  => 'عرض السلة',
+        'section_kicker'       => 'الأكثر طلباً في موسم العيد',
+        'featured_product_ids' => '',
+    ];
+}
+
+function qe_campaign_enabled(): bool
+{
+    return (bool) get_theme_mod('qe_campaign_enabled', qe_campaign_defaults()['enabled']);
+}
+
+function qe_campaign_text(string $key): string
+{
+    $defaults = qe_campaign_defaults();
+
+    return (string) get_theme_mod('qe_campaign_' . $key, $defaults[$key] ?? '');
+}
 
 function qe_setup(): void
 {
@@ -48,7 +80,6 @@ function qe_enqueue_assets(): void
     wp_enqueue_script('qe-theme', get_template_directory_uri() . '/assets/js/theme.js', [], QE_THEME_VERSION, true);
 
     wp_localize_script('qe-theme', 'qeTheme', [
-        'whatsapp' => preg_replace('/\D+/', '', (string) get_theme_mod('qe_whatsapp_number', '201000000000')),
         'eidDate'  => (string) get_theme_mod('qe_eid_date', '2026-05-27T00:00:00+03:00'),
         'currency' => function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : 'ج.م',
     ]);
@@ -58,16 +89,50 @@ add_action('wp_enqueue_scripts', 'qe_enqueue_assets');
 function qe_body_classes(array $classes): array
 {
     $classes[] = 'qe-rtl';
+
+    if (qe_campaign_enabled()) {
+        $classes[] = 'qe-campaign-mode';
+    }
+
     return $classes;
 }
 add_filter('body_class', 'qe_body_classes');
 
-function qe_whatsapp_link(string $message = ''): string
+function qe_shop_url(): string
 {
-    $number = preg_replace('/\D+/', '', (string) get_theme_mod('qe_whatsapp_number', '201000000000'));
-    $text   = $message ?: 'السلام عليكم، عايز احجز أضحية.';
+    if (function_exists('wc_get_page_permalink')) {
+        $url = wc_get_page_permalink('shop');
+        if (! empty($url)) {
+            return $url;
+        }
+    }
 
-    return 'https://wa.me/' . rawurlencode($number) . '?text=' . rawurlencode($text);
+    return home_url('/#categories');
+}
+
+function qe_cart_url(): string
+{
+    if (function_exists('wc_get_cart_url')) {
+        return wc_get_cart_url();
+    }
+
+    return home_url('/#categories');
+}
+
+function qe_checkout_url(): string
+{
+    if (function_exists('wc_get_checkout_url')) {
+        return wc_get_checkout_url();
+    }
+
+    if (function_exists('wc_get_page_permalink')) {
+        $url = wc_get_page_permalink('checkout');
+        if (! empty($url)) {
+            return $url;
+        }
+    }
+
+    return home_url('/checkout');
 }
 
 function qe_asset_image(string $kind): string
@@ -81,26 +146,99 @@ function qe_asset_image(string $kind): string
     return $images[$kind] ?? $images['sheep'];
 }
 
+function qe_campaign_product_ids(): array
+{
+    $raw = (string) get_theme_mod('qe_campaign_featured_product_ids', qe_campaign_defaults()['featured_product_ids']);
+    if ($raw === '') {
+        return [];
+    }
+
+    $parts = array_map('trim', explode(',', $raw));
+    $ids   = array_map('absint', $parts);
+
+    return array_values(array_filter($ids));
+}
+
 function qe_product_cards(): array
 {
+    if (function_exists('wc_get_products')) {
+        $ids   = qe_campaign_product_ids();
+        $query = [
+            'status' => 'publish',
+            'limit'  => 3,
+        ];
+
+        if (! empty($ids)) {
+            $query['include'] = $ids;
+            $query['orderby'] = 'post__in';
+        }
+
+        $products = wc_get_products($query);
+
+        if (empty($products)) {
+            $products = wc_get_products([
+                'status'  => 'publish',
+                'limit'   => 3,
+                'orderby' => 'date',
+                'order'   => 'DESC',
+            ]);
+        }
+
+        if (! empty($products)) {
+            return array_map(
+                static function ($product): array {
+                    $stock_label = 'متاح للحجز';
+
+                    if ($product->managing_stock()) {
+                        $stock_quantity = (int) $product->get_stock_quantity();
+                        $stock_label    = $stock_quantity > 0 ? sprintf('متبقي %d فقط', $stock_quantity) : 'نفد المخزون';
+                    } elseif (! $product->is_in_stock()) {
+                        $stock_label = 'نفد المخزون';
+                    }
+
+                    $image = get_the_post_thumbnail_url($product->get_id(), 'large');
+                    if (! $image) {
+                        $image = qe_asset_image('sheep');
+                    }
+
+                    return [
+                        'title'       => $product->get_name(),
+                        'image'       => $image,
+                        'price'       => wp_strip_all_tags($product->get_price_html() ?: wc_price((float) $product->get_price())),
+                        'stock'       => $stock_label,
+                        'url'         => get_permalink($product->get_id()),
+                        'button_text' => 'عرض التفاصيل',
+                    ];
+                },
+                $products
+            );
+        }
+    }
+
     return [
         [
-            'title' => 'خرفان',
-            'image' => qe_asset_image('sheep'),
-            'price' => 'من ٩,٥٠٠ ج.م',
-            'stock' => 'متبقي ٧ فقط',
+            'title'       => 'خرفان',
+            'image'       => qe_asset_image('sheep'),
+            'price'       => 'من ٩,٥٠٠ ج.م',
+            'stock'       => 'متبقي ٧ فقط',
+            'url'         => qe_shop_url(),
+            'button_text' => 'ابدأ الطلب',
         ],
         [
-            'title' => 'عجول',
-            'image' => qe_asset_image('cow'),
-            'price' => 'من ٥٨,٠٠٠ ج.م',
-            'stock' => 'متبقي ٣ فقط',
+            'title'       => 'عجول',
+            'image'       => qe_asset_image('cow'),
+            'price'       => 'من ٥٨,٠٠٠ ج.م',
+            'stock'       => 'متبقي ٣ فقط',
+            'url'         => qe_shop_url(),
+            'button_text' => 'ابدأ الطلب',
         ],
         [
-            'title' => 'ماعز',
-            'image' => qe_asset_image('goat'),
-            'price' => 'من ٧,٨٠٠ ج.م',
-            'stock' => 'متبقي ٥ فقط',
+            'title'       => 'ماعز',
+            'image'       => qe_asset_image('goat'),
+            'price'       => 'من ٧,٨٠٠ ج.م',
+            'stock'       => 'متبقي ٥ فقط',
+            'url'         => qe_shop_url(),
+            'button_text' => 'ابدأ الطلب',
         ],
     ];
 }
@@ -111,17 +249,16 @@ function qe_checkout_fields($fields)
         return $fields;
     }
 
-    $fields['billing']['billing_first_name']['label'] = 'الاسم';
-    $fields['billing']['billing_phone']['label'] = 'الهاتف';
-    $fields['billing']['billing_address_1']['label'] = 'العنوان';
-    $fields['billing']['billing_address_1']['placeholder'] = 'اكتب العنوان بالتفصيل';
-
+    $fields['billing']['billing_first_name']['label']             = 'الاسم';
+    $fields['billing']['billing_phone']['label']                  = 'الهاتف';
+    $fields['billing']['billing_address_1']['label']              = 'العنوان';
+    $fields['billing']['billing_address_1']['placeholder']        = 'اكتب العنوان بالتفصيل';
     $fields['order']['qe_slaughter_date'] = [
-        'type'        => 'date',
-        'label'       => 'تاريخ الذبح',
-        'required'    => true,
-        'class'       => ['form-row-wide'],
-        'priority'    => 15,
+        'type'     => 'date',
+        'label'    => 'تاريخ الذبح',
+        'required' => true,
+        'class'    => ['form-row-wide'],
+        'priority' => 15,
     ];
 
     return $fields;
@@ -246,35 +383,57 @@ function qe_save_order_item_booking_data(WC_Order_Item_Product $item, string $ca
 }
 add_action('woocommerce_checkout_create_order_line_item', 'qe_save_order_item_booking_data', 10, 3);
 
-function qe_order_received_whatsapp($order_id): void
+function qe_order_received_next_step($order_id): void
 {
     if (! $order_id) {
         return;
     }
 
-    $message = 'تم استلام طلب الأضحية رقم ' . $order_id . '. هنأكد مع حضرتك التفاصيل على واتساب.';
-    echo '<p><a class="qe-button qe-button--gold" href="' . esc_url(qe_whatsapp_link($message)) . '" target="_blank" rel="noopener">تأكيد الطلب على واتساب</a></p>';
+    echo '<p><a class="qe-button qe-button--gold" href="' . esc_url(qe_shop_url()) . '">متابعة التسوق</a></p>';
 }
-add_action('woocommerce_thankyou', 'qe_order_received_whatsapp', 20);
+add_action('woocommerce_thankyou', 'qe_order_received_next_step', 20);
 
 function qe_customize_register(WP_Customize_Manager $wp_customize): void
 {
-    $wp_customize->add_section('qe_conversion', [
-        'title'       => 'Qurbani Conversion',
-        'description' => 'إعدادات واتساب وتاريخ العيد.',
+    $wp_customize->add_section('qe_campaign', [
+        'title'       => 'Qurbani Campaign',
+        'description' => 'إعدادات موسم العيد والمحتوى التسويقي الرئيسي.',
         'priority'    => 35,
     ]);
 
-    $wp_customize->add_setting('qe_whatsapp_number', [
-        'default'           => '201000000000',
-        'sanitize_callback' => 'sanitize_text_field',
+    $wp_customize->add_setting('qe_campaign_enabled', [
+        'default'           => qe_campaign_defaults()['enabled'],
+        'sanitize_callback' => 'qe_sanitize_checkbox',
     ]);
 
-    $wp_customize->add_control('qe_whatsapp_number', [
-        'label'   => 'رقم واتساب دولي',
-        'section' => 'qe_conversion',
-        'type'    => 'text',
+    $wp_customize->add_control('qe_campaign_enabled', [
+        'label'   => 'تفعيل وضع حملة العيد',
+        'section' => 'qe_campaign',
+        'type'    => 'checkbox',
     ]);
+
+    foreach ([
+        'banner_text'          => 'نص الشريط العلوي',
+        'hero_eyebrow'         => 'النص الصغير أعلى العنوان',
+        'hero_title'           => 'عنوان البانر الرئيسي',
+        'hero_body'            => 'وصف البانر الرئيسي',
+        'primary_cta_label'    => 'نص الزر الرئيسي',
+        'secondary_cta_label'  => 'نص الزر الثانوي',
+        'section_kicker'       => 'عنوان قسم المنتجات',
+        'featured_product_ids' => 'معرفات المنتجات المميزة',
+    ] as $key => $label) {
+        $wp_customize->add_setting('qe_campaign_' . $key, [
+            'default'           => qe_campaign_defaults()[$key],
+            'sanitize_callback' => 'sanitize_text_field',
+        ]);
+
+        $wp_customize->add_control('qe_campaign_' . $key, [
+            'label'       => $label,
+            'section'     => 'qe_campaign',
+            'type'        => 'text',
+            'description' => $key === 'featured_product_ids' ? 'اكتب IDs المنتجات مفصولة بفاصلة مثل: 12,15,18' : '',
+        ]);
+    }
 
     $wp_customize->add_setting('qe_eid_date', [
         'default'           => '2026-05-27T00:00:00+03:00',
@@ -284,7 +443,7 @@ function qe_customize_register(WP_Customize_Manager $wp_customize): void
     $wp_customize->add_control('qe_eid_date', [
         'label'       => 'تاريخ العد التنازلي للعيد',
         'description' => 'مثال: 2026-05-27T00:00:00+03:00',
-        'section'     => 'qe_conversion',
+        'section'     => 'qe_campaign',
         'type'        => 'text',
     ]);
 }

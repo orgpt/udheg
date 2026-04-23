@@ -28,7 +28,7 @@ $image = get_the_post_thumbnail_url(get_the_ID(), 'large') ?: qe_asset_image('sh
         <?php woocommerce_output_all_notices(); ?>
         <p class="qe-section-kicker">حجز مباشر</p>
         <h1><?php the_title(); ?></h1>
-        <p class="qe-product-note">اختار الوزن والخدمات، والسعر بيتحدث قدامك قبل تأكيد الطلب.</p>
+        <p class="qe-product-note">اختر الوزن والخدمات، والسعر بيتحدث قدامك قبل تأكيد الطلب من الموقع.</p>
 
         <div class="qe-product-price">
             <span data-price-output><?php echo esc_html(number_format_i18n($price)); ?></span>
@@ -64,19 +64,19 @@ $image = get_the_post_thumbnail_url(get_the_ID(), 'large') ?: qe_asset_image('sh
                 <input type="hidden" name="add-to-cart" value="<?php echo esc_attr((string) $product->get_id()); ?>">
                 <div class="qe-product-actions">
                     <button type="submit" class="single_add_to_cart_button button alt">إضافة للسلة</button>
-                    <a class="qe-button qe-button--gold" href="<?php echo esc_url(qe_whatsapp_link('السلام عليكم، عايز أحجز ' . get_the_title() . '.')); ?>" target="_blank" rel="noopener">طلب سريع واتساب</a>
+                    <a class="qe-button qe-button--gold" href="<?php echo esc_url(qe_checkout_url()); ?>">إتمام الطلب</a>
                 </div>
             <?php else : ?>
                 <div class="qe-product-actions">
-                    <a class="qe-button qe-button--gold" href="<?php echo esc_url(qe_whatsapp_link('السلام عليكم، عايز أحجز أضحية.')); ?>" target="_blank" rel="noopener">طلب سريع واتساب</a>
+                    <a class="qe-button qe-button--gold" href="<?php echo esc_url(qe_shop_url()); ?>">ابدأ الطلب</a>
                 </div>
             <?php endif; ?>
         </form>
 
         <div class="qe-trust-stack">
             <div class="qe-trust-panel">
-                <strong>فيديو الذبح</strong>
-                <span>توثيق واضح يطمنك بعد التنفيذ.</span>
+                <strong>تأكيد الطلب من الموقع</strong>
+                <span>كل التفاصيل بتتسجل داخل الطلب قبل الدفع النهائي.</span>
             </div>
             <div class="qe-trust-panel">
                 <strong>ضمان وشفافية</strong>

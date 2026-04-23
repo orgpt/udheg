@@ -47,8 +47,8 @@ if (! defined('ABSPATH')) {
         </nav>
 
         <div class="qe-header-actions">
-            <a class="qe-button qe-button--ghost" href="<?php echo esc_url(qe_whatsapp_link()); ?>" target="_blank" rel="noopener">واتساب</a>
-            <a class="qe-button" href="<?php echo esc_url(home_url('/#categories')); ?>">احجز الآن</a>
+            <a class="qe-button qe-button--ghost" href="<?php echo esc_url(qe_cart_url()); ?>">السلة</a>
+            <a class="qe-button" href="<?php echo esc_url(qe_shop_url()); ?>">اطلب الآن</a>
         </div>
     </div>
 </header>

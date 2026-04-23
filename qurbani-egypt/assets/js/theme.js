@@ -26,16 +26,20 @@
 
     const basePrice = Number(booking.dataset.basePrice || 0);
     const priceOutput = booking.querySelector("[data-price-output]");
-    const selector = booking.querySelector("[data-weight-selector]");
-    const addons = booking.querySelectorAll("[data-price-addon]");
+    const imageOutput = booking.querySelector("[data-product-image]");
+    const controls = booking.querySelectorAll("[data-price-addon]");
 
     function calculate() {
-      const multiplier = selector ? Number(selector.selectedOptions[0].dataset.multiplier || 1) : 1;
-      let total = basePrice * multiplier;
+      let total = basePrice;
 
-      addons.forEach((addon) => {
-        if (addon.checked) {
-          total += Number(addon.dataset.priceAddon || 0);
+      controls.forEach((control) => {
+        const isChosen = control.type === "checkbox" ? control.checked : control.checked;
+        if (isChosen) {
+          total += Number(control.dataset.priceAddon || 0);
+
+          if (control.dataset.optionImage && imageOutput) {
+            imageOutput.src = control.dataset.optionImage;
+          }
         }
       });
 
@@ -44,8 +48,7 @@
       }
     }
 
-    if (selector) selector.addEventListener("change", calculate);
-    addons.forEach((addon) => addon.addEventListener("change", calculate));
+    controls.forEach((control) => control.addEventListener("change", calculate));
     calculate();
   }
 

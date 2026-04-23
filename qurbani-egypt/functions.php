@@ -9,7 +9,7 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
-define('QE_THEME_VERSION', '1.1.0');
+define('QE_THEME_VERSION', '1.2.0');
 
 function qe_sanitize_checkbox($value): bool
 {
@@ -138,9 +138,9 @@ function qe_checkout_url(): string
 function qe_asset_image(string $kind): string
 {
     $images = [
-        'sheep' => 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?auto=format&fit=crop&w=900&q=80',
-        'cow'   => 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=900&q=80',
-        'goat'  => 'https://images.unsplash.com/photo-1524024973431-2ad916746881?auto=format&fit=crop&w=900&q=80',
+        'sheep' => 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?auto=format&fit=crop&w=1200&q=80',
+        'cow'   => 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=1200&q=80',
+        'goat'  => 'https://images.unsplash.com/photo-1524024973431-2ad916746881?auto=format&fit=crop&w=1200&q=80',
     ];
 
     return $images[$kind] ?? $images['sheep'];
@@ -159,13 +159,124 @@ function qe_campaign_product_ids(): array
     return array_values(array_filter($ids));
 }
 
+function qe_detect_product_family($product): string
+{
+    if (! $product) {
+        return 'sheep';
+    }
+
+    $name = function_exists('mb_strtolower') ? mb_strtolower($product->get_name(), 'UTF-8') : strtolower($product->get_name());
+
+    if (strpos($name, 'عجل') !== false || strpos($name, 'بقر') !== false || strpos($name, 'cow') !== false) {
+        return 'cow';
+    }
+
+    if (strpos($name, 'ماعز') !== false || strpos($name, 'goat') !== false) {
+        return 'goat';
+    }
+
+    return 'sheep';
+}
+
+function qe_product_option_sets(): array
+{
+    return [
+        'sheep' => [
+            'label'          => 'الخرفان',
+            'fallback_image' => qe_asset_image('sheep'),
+            'types'          => [
+                'baladi' => [
+                    'label' => 'خروف بلدي',
+                    'price' => 0,
+                    'image' => 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&w=900&q=80',
+                ],
+                'beri' => [
+                    'label' => 'خروف بري',
+                    'price' => 850,
+                    'image' => 'https://images.unsplash.com/photo-1504593811423-6dd665756598?auto=format&fit=crop&w=900&q=80',
+                ],
+                'sawakni' => [
+                    'label' => 'خروف سواكني',
+                    'price' => 1450,
+                    'image' => 'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=900&q=80',
+                ],
+            ],
+            'weights' => [
+                'light' => ['label' => 'وزن خفيف 35-40 كجم', 'price' => 0],
+                'medium' => ['label' => 'وزن متوسط 41-50 كجم', 'price' => 1200],
+                'large' => ['label' => 'وزن كبير 51-60 كجم', 'price' => 2400],
+            ],
+        ],
+        'goat' => [
+            'label'          => 'الماعز',
+            'fallback_image' => qe_asset_image('goat'),
+            'types'          => [
+                'baladi' => [
+                    'label' => 'ماعز بلدي',
+                    'price' => 0,
+                    'image' => 'https://images.unsplash.com/photo-1524024973431-2ad916746881?auto=format&fit=crop&w=900&q=80',
+                ],
+                'mountain' => [
+                    'label' => 'ماعز جبلي',
+                    'price' => 700,
+                    'image' => 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80',
+                ],
+                'premium' => [
+                    'label' => 'ماعز تسمين ممتاز',
+                    'price' => 1200,
+                    'image' => 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=900&q=80',
+                ],
+            ],
+            'weights' => [
+                'light' => ['label' => 'وزن خفيف 18-22 كجم', 'price' => 0],
+                'medium' => ['label' => 'وزن متوسط 23-28 كجم', 'price' => 900],
+                'large' => ['label' => 'وزن كبير 29-35 كجم', 'price' => 1800],
+            ],
+        ],
+        'cow' => [
+            'label'          => 'العجول',
+            'fallback_image' => qe_asset_image('cow'),
+            'types'          => [
+                'baladi' => [
+                    'label' => 'عجل بلدي',
+                    'price' => 0,
+                    'image' => 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=900&q=80',
+                ],
+                'friesian' => [
+                    'label' => 'عجل فريزيان',
+                    'price' => 3500,
+                    'image' => 'https://images.unsplash.com/photo-1545468800-85cc9bc6ecf7?auto=format&fit=crop&w=900&q=80',
+                ],
+                'premium' => [
+                    'label' => 'عجل تسمين ممتاز',
+                    'price' => 6000,
+                    'image' => 'https://images.unsplash.com/photo-1560114928-40f1f1eb26a0?auto=format&fit=crop&w=900&q=80',
+                ],
+            ],
+            'weights' => [
+                'quarter' => ['label' => 'ربع عجل 70-90 كجم', 'price' => 0],
+                'half' => ['label' => 'نصف عجل 140-180 كجم', 'price' => 26000],
+                'full' => ['label' => 'عجل كامل 280-360 كجم', 'price' => 52000],
+            ],
+        ],
+    ];
+}
+
+function qe_product_booking_config($product = null): array
+{
+    $family  = qe_detect_product_family($product);
+    $options = qe_product_option_sets();
+
+    return $options[$family] ?? $options['sheep'];
+}
+
 function qe_product_cards(): array
 {
     if (function_exists('wc_get_products')) {
         $ids   = qe_campaign_product_ids();
         $query = [
             'status' => 'publish',
-            'limit'  => 3,
+            'limit'  => 6,
         ];
 
         if (! empty($ids)) {
@@ -178,7 +289,7 @@ function qe_product_cards(): array
         if (empty($products)) {
             $products = wc_get_products([
                 'status'  => 'publish',
-                'limit'   => 3,
+                'limit'   => 6,
                 'orderby' => 'date',
                 'order'   => 'DESC',
             ]);
@@ -187,6 +298,7 @@ function qe_product_cards(): array
         if (! empty($products)) {
             return array_map(
                 static function ($product): array {
+                    $config      = qe_product_booking_config($product);
                     $stock_label = 'متاح للحجز';
 
                     if ($product->managing_stock()) {
@@ -196,10 +308,7 @@ function qe_product_cards(): array
                         $stock_label = 'نفد المخزون';
                     }
 
-                    $image = get_the_post_thumbnail_url($product->get_id(), 'large');
-                    if (! $image) {
-                        $image = qe_asset_image('sheep');
-                    }
+                    $image = get_the_post_thumbnail_url($product->get_id(), 'large') ?: $config['fallback_image'];
 
                     return [
                         'title'       => $product->get_name(),
@@ -217,7 +326,7 @@ function qe_product_cards(): array
 
     return [
         [
-            'title'       => 'خرفان',
+            'title'       => 'خروف بلدي ممتاز',
             'image'       => qe_asset_image('sheep'),
             'price'       => 'من ٩,٥٠٠ ج.م',
             'stock'       => 'متبقي ٧ فقط',
@@ -225,7 +334,7 @@ function qe_product_cards(): array
             'button_text' => 'ابدأ الطلب',
         ],
         [
-            'title'       => 'عجول',
+            'title'       => 'عجل بلدي كبير',
             'image'       => qe_asset_image('cow'),
             'price'       => 'من ٥٨,٠٠٠ ج.م',
             'stock'       => 'متبقي ٣ فقط',
@@ -233,7 +342,7 @@ function qe_product_cards(): array
             'button_text' => 'ابدأ الطلب',
         ],
         [
-            'title'       => 'ماعز',
+            'title'       => 'ماعز بلدي',
             'image'       => qe_asset_image('goat'),
             'price'       => 'من ٧,٨٠٠ ج.م',
             'stock'       => 'متبقي ٥ فقط',
@@ -249,13 +358,13 @@ function qe_checkout_fields($fields)
         return $fields;
     }
 
-    $fields['billing']['billing_first_name']['label']             = 'الاسم';
-    $fields['billing']['billing_phone']['label']                  = 'الهاتف';
-    $fields['billing']['billing_address_1']['label']              = 'العنوان';
-    $fields['billing']['billing_address_1']['placeholder']        = 'اكتب العنوان بالتفصيل';
+    $fields['billing']['billing_first_name']['label']      = 'الاسم';
+    $fields['billing']['billing_phone']['label']           = 'الهاتف';
+    $fields['billing']['billing_address_1']['label']       = 'العنوان';
+    $fields['billing']['billing_address_1']['placeholder'] = 'اكتب العنوان بالتفصيل';
     $fields['order']['qe_slaughter_date'] = [
         'type'     => 'date',
-        'label'    => 'تاريخ الذبح',
+        'label'    => 'موعد التسليم',
         'required' => true,
         'class'    => ['form-row-wide'],
         'priority' => 15,
@@ -276,24 +385,44 @@ add_action('woocommerce_checkout_update_order_meta', 'qe_save_checkout_meta');
 function qe_product_booking_options(): array
 {
     return [
+        'qe_slaughter' => ['label' => 'خدمة الذبح', 'price' => 450],
         'qe_cutting'   => ['label' => 'تقطيع', 'price' => 350],
         'qe_packaging' => ['label' => 'تغليف', 'price' => 180],
-        'qe_delivery'  => ['label' => 'توصيل', 'price' => 250],
+    ];
+}
+
+function qe_booking_choice(string $posted_key, array $choices, string $fallback_key): array
+{
+    $selected_key = isset($_POST[$posted_key]) ? sanitize_text_field(wp_unslash($_POST[$posted_key])) : $fallback_key;
+
+    if (! isset($choices[$selected_key])) {
+        $selected_key = $fallback_key;
+    }
+
+    return [
+        'key'   => $selected_key,
+        'value' => $choices[$selected_key],
     ];
 }
 
 function qe_add_cart_item_booking_data(array $cart_item_data, int $product_id): array
 {
-    if (empty($_POST['qe_weight']) && empty($_POST['qe_delivery_date'])) {
+    if (empty($_POST['qe_weight']) && empty($_POST['qe_delivery_date']) && empty($_POST['qe_variant'])) {
         return $cart_item_data;
     }
 
     $product = function_exists('wc_get_product') ? wc_get_product($product_id) : null;
     $base    = $product ? (float) $product->get_price() : 0.0;
-    $weight  = isset($_POST['qe_weight']) ? (float) wp_unslash($_POST['qe_weight']) : 1.0;
-    $weight  = in_array($weight, [1.0, 1.15, 1.3], true) ? $weight : 1.0;
-    $addons  = [];
-    $total   = $base * $weight;
+    $config  = qe_product_booking_config($product);
+    $types   = $config['types'];
+    $weights = $config['weights'];
+
+    $first_type_key   = (string) array_key_first($types);
+    $first_weight_key = (string) array_key_first($weights);
+    $type_choice      = qe_booking_choice('qe_variant', $types, $first_type_key);
+    $weight_choice    = qe_booking_choice('qe_weight', $weights, $first_weight_key);
+    $addons           = [];
+    $total            = $base + (float) $type_choice['value']['price'] + (float) $weight_choice['value']['price'];
 
     foreach (qe_product_booking_options() as $key => $option) {
         if (! empty($_POST[$key])) {
@@ -303,10 +432,14 @@ function qe_add_cart_item_booking_data(array $cart_item_data, int $product_id): 
     }
 
     $cart_item_data['qe_booking'] = [
-        'weight_multiplier' => $weight,
-        'addons'            => $addons,
-        'delivery_date'     => isset($_POST['qe_delivery_date']) ? sanitize_text_field(wp_unslash($_POST['qe_delivery_date'])) : '',
-        'calculated_price'  => $total,
+        'family'           => qe_detect_product_family($product),
+        'variant_key'      => $type_choice['key'],
+        'variant_label'    => $type_choice['value']['label'],
+        'weight_key'       => $weight_choice['key'],
+        'weight_label'     => $weight_choice['value']['label'],
+        'addons'           => $addons,
+        'delivery_date'    => isset($_POST['qe_delivery_date']) ? sanitize_text_field(wp_unslash($_POST['qe_delivery_date'])) : '',
+        'calculated_price' => $total,
     ];
     $cart_item_data['qe_unique_key'] = md5(wp_json_encode($cart_item_data['qe_booking']) . microtime());
 
@@ -334,28 +467,26 @@ function qe_display_cart_item_booking_data(array $item_data, array $cart_item): 
         return $item_data;
     }
 
-    $weight_labels = [
-        '1'    => 'وزن أساسي',
-        '1.15' => 'وزن أكبر + ١٥٪',
-        '1.3'  => 'وزن مميز + ٣٠٪',
+    $item_data[] = [
+        'key'   => 'النوع',
+        'value' => $cart_item['qe_booking']['variant_label'] ?? '',
     ];
-    $weight = (string) $cart_item['qe_booking']['weight_multiplier'];
 
     $item_data[] = [
         'key'   => 'الوزن',
-        'value' => $weight_labels[$weight] ?? 'وزن أساسي',
+        'value' => $cart_item['qe_booking']['weight_label'] ?? '',
     ];
 
     if (! empty($cart_item['qe_booking']['addons'])) {
         $item_data[] = [
-            'key'   => 'الخدمات',
+            'key'   => 'الإضافات',
             'value' => implode('، ', wp_list_pluck($cart_item['qe_booking']['addons'], 'label')),
         ];
     }
 
     if (! empty($cart_item['qe_booking']['delivery_date'])) {
         $item_data[] = [
-            'key'   => 'يوم العيد',
+            'key'   => 'موعد التسليم',
             'value' => esc_html($cart_item['qe_booking']['delivery_date']),
         ];
     }
@@ -371,14 +502,15 @@ function qe_save_order_item_booking_data(WC_Order_Item_Product $item, string $ca
     }
 
     $booking = $values['qe_booking'];
-    $item->add_meta_data('اختيار الوزن', (string) $booking['weight_multiplier']);
+    $item->add_meta_data('النوع', (string) ($booking['variant_label'] ?? ''));
+    $item->add_meta_data('الوزن', (string) ($booking['weight_label'] ?? ''));
 
     if (! empty($booking['addons'])) {
-        $item->add_meta_data('الخدمات', implode('، ', wp_list_pluck($booking['addons'], 'label')));
+        $item->add_meta_data('الإضافات', implode('، ', wp_list_pluck($booking['addons'], 'label')));
     }
 
     if (! empty($booking['delivery_date'])) {
-        $item->add_meta_data('يوم العيد', $booking['delivery_date']);
+        $item->add_meta_data('موعد التسليم', $booking['delivery_date']);
     }
 }
 add_action('woocommerce_checkout_create_order_line_item', 'qe_save_order_item_booking_data', 10, 3);

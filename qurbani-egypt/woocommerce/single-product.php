@@ -11,11 +11,11 @@ get_header('shop');
 
 global $product;
 
-if (! $product && function_exists('wc_get_product')) {
+if ((! is_object($product) || ! method_exists($product, 'get_price')) && function_exists('wc_get_product')) {
     $product = wc_get_product(get_the_ID());
 }
 
-$price        = $product ? (float) $product->get_price() : 9500;
+$price        = (is_object($product) && method_exists($product, 'get_price')) ? (float) $product->get_price() : 9500;
 $config       = qe_product_booking_config($product);
 $types        = $config['types'];
 $weights      = $config['weights'];
@@ -106,7 +106,7 @@ $default_type = (string) array_key_first($types);
                 </div>
             </div>
 
-            <?php if ($product) : ?>
+            <?php if (is_object($product) && method_exists($product, 'get_id')) : ?>
                 <?php woocommerce_quantity_input(['min_value' => 1, 'max_value' => $product->get_max_purchase_quantity()]); ?>
                 <input type="hidden" name="add-to-cart" value="<?php echo esc_attr((string) $product->get_id()); ?>">
                 <div class="qe-product-actions">

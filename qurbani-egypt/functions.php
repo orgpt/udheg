@@ -161,7 +161,7 @@ function qe_campaign_product_ids(): array
 
 function qe_detect_product_family($product): string
 {
-    if (! $product) {
+    if (! is_object($product) || ! method_exists($product, 'get_name')) {
         return 'sheep';
     }
 
